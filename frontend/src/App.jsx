@@ -1,17 +1,32 @@
-import { useState } from 'react';
-import SearchBar from './components/SearchBar';
-import StatusFilter from './components/StatusFilter';
-import TaskTable from './components/TaskTable';
-import { useTasks } from './hooks/useTasks';
+import { useState, useEffect } from "react";
+import { useDebounce } from "./hooks/useDebounce";
+import SearchBar from "./components/SearchBar";
+import StatusFilter from "./components/StatusFilter";
+import TaskTable from "./components/TaskTable";
+import { useTasks } from "./hooks/useTasks";
 
 export default function App() {
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('');
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
 
-  const { tasks, total, loading, error } = useTasks(query, status, page, 10);
+  const debouncedQuery = useDebounce(query, 400);
 
-  const totalPages = Math.ceil(total / 10);
+  const { tasks, totalPages, loading, error } = useTasks(
+    debouncedQuery,
+    status,
+    page,
+    10
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
+
+  const handleStatusChange = (value) => {
+    setStatus(value);
+    setPage(1);
+  };
 
   return (
     <div className="app">
@@ -22,7 +37,7 @@ export default function App() {
 
       <div className="controls">
         <SearchBar value={query} onChange={setQuery} />
-        <StatusFilter value={status} onChange={setStatus} />
+        <StatusFilter value={status} onChange={handleStatusChange} />
       </div>
 
       <TaskTable tasks={tasks} loading={loading} error={error} />
@@ -35,7 +50,10 @@ export default function App() {
           <span>
             Page {page} of {totalPages}
           </span>
-          <button disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+          <button
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
             Next
           </button>
         </div>
